@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org"
+      xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
+      lang="es">
+<head>
+    <meta charset="UTF-8">
+    <title>Gestión Inventario</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" />
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body class="bg-gray-100 flex">
+
+<!-- Navbar -->
+<div th:replace="~{fragments/navbar :: navbar}"></div>
+
+<!-- Contenido principal -->
+<main class="flex-1 md:ml-64 p-6 transition-all duration-300">
+    <div layout:fragment="contenido"></div>
+</main>
+
+<!-- Script para menú hamburguesa -->
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        const mobileMenuBtn = document.getElementById('mobile-menu-btn');
+        const mobileMenu = document.getElementById('mobile-menu');
+
+        if (mobileMenuBtn && mobileMenu) {
+            mobileMenuBtn.addEventListener('click', () => {
+                // toggle clase "translate-x-0" para mostrar con slide
+                mobileMenu.classList.toggle('translate-x-0');
+                mobileMenu.classList.toggle('-translate-x-full');
+            });
+        }
+    });
+</script>
+
+</body>
+</html>

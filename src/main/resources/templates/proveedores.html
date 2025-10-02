@@ -1,0 +1,367 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org"
+      xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
+      lang="es"
+      layout:decorate="~{layout}">
+
+<head>
+    <title>Proveedores</title>
+</head>
+<body>
+<div layout:fragment="contenido" class="relative">
+
+    <h1 class="text-3xl font-bold text-gray-800">Gestión de Proveedores</h1>
+
+    <!-- SweetAlert2 -->
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+
+    <!-- Flash messages -->
+    <div th:if="${success}">
+        <script th:inline="javascript">
+            Swal.fire({
+                icon: 'success',
+                title: 'Éxito',
+                text: [[${success}]],
+                confirmButtonColor: '#2563eb',
+                heightAuto: false,
+                scrollbarPadding: false
+            });
+        </script>
+    </div>
+    <div th:if="${error}">
+        <script th:inline="javascript">
+            Swal.fire({
+                icon: 'error',
+                title: 'Error',
+                text: [[${error}]],
+                confirmButtonColor: '#dc2626',
+                heightAuto: false,
+                scrollbarPadding: false
+            });
+        </script>
+    </div>
+
+    <!-- Controles -->
+    <div class="flex flex-col md:flex-row justify-between items-center mt-6 mb-4 gap-3">
+        <!-- Buscador -->
+        <form th:action="@{/proveedores}" method="get" class="flex w-full md:w-1/2 space-x-2">
+            <input type="text" name="keyword" th:value="${keyword}"
+                   placeholder="Buscar por nombre, RUC o correo"
+                   class="flex-1 border rounded px-3 py-2"/>
+            <button type="submit"
+                    class="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700">
+                Buscar
+            </button>
+        </form>
+
+        <!-- Botón Nuevo -->
+        <button id="btnNuevoProveedor" type="button"
+                class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded shadow">
+            + Nuevo Proveedor
+        </button>
+    </div>
+
+    <!-- Tabla (desktop) -->
+    <div class="hidden md:block bg-white rounded-lg shadow overflow-x-auto">
+        <table class="min-w-full text-sm text-left">
+            <thead class="bg-gray-100 text-gray-700 uppercase">
+            <tr>
+                <th class="px-4 py-3">ID</th>
+                <th class="px-4 py-3">Nombre</th>
+                <th class="px-4 py-3">RUC</th>
+                <th class="px-4 py-3">Correo</th>
+                <th class="px-4 py-3">Teléfono</th>
+                <th class="px-4 py-3">Dirección</th>
+                <th class="px-4 py-3">Estado</th>
+                <th class="px-4 py-3 text-center">Acciones</th>
+            </tr>
+            </thead>
+            <tbody class="divide-y divide-gray-200" th:each="prov : ${proveedoresPage.content}">
+            <tr class="hover:bg-gray-50 transition">
+                <td class="px-4 py-3" th:text="${prov.id}">1</td>
+                <td class="px-4 py-3" th:text="${prov.nombre}">Nombre</td>
+                <td class="px-4 py-3" th:text="${prov.ruc}">12345678901</td>
+                <td class="px-4 py-3" th:text="${prov.correo}">proveedor@dominio</td>
+                <td class="px-4 py-3" th:text="${prov.telefono}">987654321</td>
+                <td class="px-4 py-3" th:text="${prov.direccion}">Lima</td>
+                <td class="px-4 py-3">
+                    <span th:text="${prov.estado}"
+                          class="px-2 py-1 rounded text-xs"
+                          th:classappend="${prov.estado.name()} == 'ACTIVO' ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'">
+                    </span>
+                </td>
+                <td class="px-4 py-3 text-center space-x-2">
+                    <!-- Botón Editar -->
+                    <button type="button"
+                            class="btnEditar bg-yellow-500 hover:bg-yellow-600 text-white px-3 py-1 rounded"
+                            th:attr="data-id=${prov.id},data-nombre=${prov.nombre},data-ruc=${prov.ruc},data-correo=${prov.correo},data-telefono=${prov.telefono},data-direccion=${prov.direccion},data-estado=${prov.estado}">
+                        Editar
+                    </button>
+
+                    <!-- Cambiar Estado -->
+                    <form th:action="@{/proveedores/cambiar-estado/{id}(id=${prov.id})}" method="post"
+                          class="inline cambiar-estado-form">
+                        <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}"/>
+                        <button type="submit" class="bg-indigo-500 hover:bg-indigo-600 text-white px-3 py-1 rounded">
+                            Cambiar Estado
+                        </button>
+                    </form>
+
+                    <!-- Eliminar -->
+                    <form th:action="@{/proveedores/eliminar/{id}(id=${prov.id})}" method="post"
+                          class="inline eliminar-form">
+                        <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}"/>
+                        <button type="submit" class="bg-red-500 hover:bg-red-600 text-white px-3 py-1 rounded">
+                            Eliminar
+                        </button>
+                    </form>
+                </td>
+            </tr>
+            </tbody>
+        </table>
+    </div>
+
+    <!-- Paginación Desktop -->
+    <div class="hidden md:flex mt-4 justify-center space-x-2">
+        <a th:each="i : ${#numbers.sequence(0, proveedoresPage.totalPages - 1)}"
+           th:href="@{/proveedores(page=${i}, keyword=${keyword})}"
+           th:text="${i + 1}"
+           th:classappend="${i == currentPage} ? 'bg-blue-600 text-white px-3 py-1 rounded' : 'bg-gray-200 px-3 py-1 rounded'">
+        </a>
+    </div>
+
+    <!-- Modal: Registrar -->
+    <div id="modalRegistro" class="fixed inset-0 z-50 bg-black bg-opacity-50 hidden items-center justify-center">
+        <div class="bg-white w-full max-w-lg rounded-lg p-6">
+            <h2 class="text-xl font-bold mb-4">Registrar Proveedor</h2>
+            <form th:action="@{/proveedores/registrar}" th:object="${nuevoProveedor}" method="post" class="space-y-4">
+                <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}"/>
+                <div>
+                    <label class="block text-sm font-medium">Nombre *</label>
+                    <input th:field="*{nombre}" type="text" maxlength="100" required
+                           class="w-full border rounded px-3 py-2"/>
+                </div>
+                <div>
+                    <label class="block text-sm font-medium">RUC *</label>
+                    <input th:field="*{ruc}" type="text" maxlength="11" required  placeholder="Mínimo 11 caracteres"
+                           class="w-full border rounded px-3 py-2"/>
+                </div>
+                <div>
+                    <label class="block text-sm font-medium">Correo *</label>
+                    <input th:field="*{correo}" type="email" maxlength="100" required placeholder="El correo no debe ser repetido"
+                           class="w-full border rounded px-3 py-2"/>
+                </div>
+                <div>
+                    <label class="block text-sm font-medium">Teléfono</label>
+                    <input th:field="*{telefono}" type="text" maxlength="15"
+                           class="w-full border rounded px-3 py-2"/>
+                </div>
+                <div>
+                    <label class="block text-sm font-medium">Dirección</label>
+                    <input th:field="*{direccion}" type="text" maxlength="150"
+                           class="w-full border rounded px-3 py-2"/>
+                </div>
+                <div>
+                    <label class="block text-sm font-medium">Estado *</label>
+                    <select th:field="*{estado}" required class="w-full border rounded px-3 py-2">
+                        <option value="ACTIVO">Activo</option>
+                        <option value="INACTIVO">Inactivo</option>
+                    </select>
+                </div>
+
+                <div class="flex justify-end space-x-2">
+                    <button type="button" id="btnCerrarRegistro" class="bg-gray-400 text-white px-3 py-1 rounded">Cancelar</button>
+                    <button type="submit" class="bg-blue-600 hover:bg-blue-700 text-white px-3 py-1 rounded">Guardar</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Modal: Editar -->
+    <div id="modalEdicion" class="fixed inset-0 z-50 bg-black bg-opacity-50 hidden items-center justify-center">
+        <div class="bg-white w-full max-w-lg rounded-lg p-6">
+            <h2 class="text-xl font-bold mb-4">Editar Proveedor</h2>
+            <form id="formEditar" th:object="${proveedor}" method="post" class="space-y-4">
+                <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}"/>
+                <input type="hidden" name="id" id="editId"/>
+
+                <div>
+                    <label class="block text-sm font-medium">Nombre *</label>
+                    <input name="nombre" id="editNombre" type="text" maxlength="100" required class="w-full border rounded px-3 py-2"/>
+                </div>
+                <div>
+                    <label class="block text-sm font-medium">RUC *</label>
+                    <input name="ruc" id="editRuc" type="text" maxlength="11" required class="w-full border rounded px-3 py-2"/>
+                </div>
+                <div>
+                    <label class="block text-sm font-medium">Correo *</label>
+                    <input name="correo" id="editCorreo" type="email" maxlength="100" required class="w-full border rounded px-3 py-2"/>
+                </div>
+                <div>
+                    <label class="block text-sm font-medium">Teléfono</label>
+                    <input name="telefono" id="editTelefono" type="text" maxlength="15" class="w-full border rounded px-3 py-2"/>
+                </div>
+                <div>
+                    <label class="block text-sm font-medium">Dirección</label>
+                    <input name="direccion" id="editDireccion" type="text" maxlength="150" class="w-full border rounded px-3 py-2"/>
+                </div>
+                <div>
+                    <label class="block text-sm font-medium">Estado *</label>
+                    <select name="estado" id="editEstado" required class="w-full border rounded px-3 py-2">
+                        <option value="ACTIVO">Activo</option>
+                        <option value="INACTIVO">Inactivo</option>
+                    </select>
+                </div>
+
+                <div class="flex justify-end space-x-2">
+                    <button type="button" id="btnCerrarEdicion" class="bg-gray-400 text-white px-3 py-1 rounded">Cancelar</button>
+                    <button type="submit" class="bg-blue-600 hover:bg-blue-700 text-white px-3 py-1 rounded">Actualizar</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Fin Modales -->
+
+    <!-- Cards (mobile) -->
+    <div class="md:hidden">
+        <div class="overflow-y-auto max-h-[calc(100vh-100px)] space-y-4 p-2 pb-20">
+            <div th:each="prov : ${proveedoresPage.content}"
+                 class="bg-white p-4 rounded-lg shadow flex flex-col gap-2 transition hover:shadow-md hover:scale-[1.01]">
+                <div class="flex items-start justify-between">
+                    <div>
+                        <h2 class="font-bold text-gray-800" th:text="${prov.nombre}">Nombre</h2>
+                        <p class="text-sm text-gray-600" th:text="${prov.ruc}">RUC: 12345678901</p>
+                    </div>
+                    <span class="text-sm px-2 py-1 rounded text-xs"
+                          th:text="${prov.estado}"
+                          th:classappend="${prov.estado.name()} == 'ACTIVO' ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'">
+                    </span>
+                </div>
+
+                <div class="text-sm text-gray-700 space-y-1">
+                    <p><span class="font-semibold">Correo:</span> <span th:text="${prov.correo}">proveedor@dominio</span></p>
+                    <p><span class="font-semibold">Teléfono:</span> <span th:text="${prov.telefono}">987654321</span></p>
+                    <p><span class="font-semibold">Dirección:</span> <span th:text="${prov.direccion}">Lima</span></p>
+                </div>
+
+                <div class="flex justify-end gap-2 pt-2">
+                    <button class="btnEditar bg-yellow-500 hover:bg-yellow-600 text-white px-3 py-1 rounded"
+                            th:attr="data-id=${prov.id},data-nombre=${prov.nombre},data-ruc=${prov.ruc},data-correo=${prov.correo},data-telefono=${prov.telefono},data-direccion=${prov.direccion},data-estado=${prov.estado}">
+                        Editar
+                    </button>
+
+                    <form th:action="@{/proveedores/cambiar-estado/{id}(id=${prov.id})}" method="post" class="inline cambiar-estado-form">
+                        <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}"/>
+                        <button type="submit" class="bg-indigo-500 hover:bg-indigo-600 text-white px-3 py-1 rounded">
+                            Cambiar Estado
+                        </button>
+                    </form>
+
+                    <form th:action="@{/proveedores/eliminar/{id}(id=${prov.id})}" method="post" class="inline eliminar-form">
+                        <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}"/>
+                        <button type="submit" class="bg-red-500 hover:bg-red-600 text-white px-3 py-1 rounded">
+                            Eliminar
+                        </button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Paginación sticky (mobile) -->
+    <div class="md:hidden fixed bottom-0 left-0 w-full bg-white border-t py-3 flex justify-center space-x-2 shadow-md z-40">
+        <a th:each="i : ${#numbers.sequence(0, proveedoresPage.totalPages - 1)}"
+           th:href="@{/proveedores(page=${i}, keyword=${keyword})}"
+           th:text="${i + 1}"
+           th:classappend="${i == currentPage}
+               ? 'bg-blue-600 text-white px-3 py-1 rounded'
+               : 'bg-gray-200 px-3 py-1 rounded hover:bg-gray-300'">
+        </a>
+    </div>
+
+    <!-- Scripts: comportamiento -->
+    <script th:inline="javascript">
+        document.addEventListener('DOMContentLoaded', function () {
+            const modalRegistro = document.getElementById('modalRegistro');
+            const modalEdicion = document.getElementById('modalEdicion');
+            const formEditar = document.getElementById('formEditar');
+
+            // Abrir modal registro
+            document.getElementById('btnNuevoProveedor').addEventListener('click', () => {
+                modalRegistro.classList.remove('hidden');
+                modalRegistro.classList.add('flex');
+            });
+
+            // Cerrar modal registro
+            document.getElementById('btnCerrarRegistro').addEventListener('click', () => {
+                modalRegistro.classList.add('hidden');
+                modalRegistro.classList.remove('flex');
+            });
+
+            // Editar
+            document.querySelectorAll('.btnEditar').forEach(btn => {
+                btn.addEventListener('click', function () {
+                    const id = btn.getAttribute('data-id');
+                    document.getElementById('editId').value = id;
+                    document.getElementById('editNombre').value = btn.getAttribute('data-nombre') || '';
+                    document.getElementById('editRuc').value = btn.getAttribute('data-ruc') || '';
+                    document.getElementById('editCorreo').value = btn.getAttribute('data-correo') || '';
+                    document.getElementById('editTelefono').value = btn.getAttribute('data-telefono') || '';
+                    document.getElementById('editDireccion').value = btn.getAttribute('data-direccion') || '';
+                    document.getElementById('editEstado').value = btn.getAttribute('data-estado') || 'ACTIVO';
+
+                    formEditar.action = '/proveedores/actualizar/' + id;
+
+                    modalEdicion.classList.remove('hidden');
+                    modalEdicion.classList.add('flex');
+                });
+            });
+
+            document.getElementById('btnCerrarEdicion').addEventListener('click', () => {
+                modalEdicion.classList.add('hidden');
+                modalEdicion.classList.remove('flex');
+            });
+
+            // Confirmaciones con SweetAlert
+            document.querySelectorAll('.eliminar-form').forEach(form => {
+                form.addEventListener('submit', function (e) {
+                    e.preventDefault();
+                    Swal.fire({
+                        title: '¿Eliminar proveedor?',
+                        text: "No podrás deshacer esto",
+                        icon: 'warning',
+                        showCancelButton: true,
+                        confirmButtonText: 'Sí, eliminar',
+                        cancelButtonText: 'Cancelar',
+                        confirmButtonColor: '#dc2626',
+                        cancelButtonColor: '#6b7280',
+                        heightAuto: false,
+                        scrollbarPadding: false
+                    }).then(result => { if (result.isConfirmed) form.submit(); });
+                });
+            });
+
+            document.querySelectorAll('.cambiar-estado-form').forEach(form => {
+                form.addEventListener('submit', function (e) {
+                    e.preventDefault();
+                    Swal.fire({
+                        title: '¿Cambiar estado?',
+                        text: "El estado será actualizado",
+                        icon: 'question',
+                        showCancelButton: true,
+                        confirmButtonText: 'Sí, cambiar',
+                        cancelButtonText: 'Cancelar',
+                        confirmButtonColor: '#9333ea',
+                        cancelButtonColor: '#6b7280',
+                        heightAuto: false,
+                        scrollbarPadding: false
+                    }).then(result => { if (result.isConfirmed) form.submit(); });
+                });
+            });
+        });
+    </script>
+
+</div>
+</body>
+</html>

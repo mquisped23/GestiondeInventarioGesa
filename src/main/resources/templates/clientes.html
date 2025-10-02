@@ -1,0 +1,485 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org"
+      xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
+      lang="es"
+      layout:decorate="~{layout}">
+
+<head>
+    <title>Clientes</title>
+</head>
+<body>
+<div layout:fragment="contenido">
+
+    <h1 class="text-3xl font-bold text-gray-800">Gestión de Clientes</h1>
+
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+
+    <div th:if="${success}">
+        <script th:inline="javascript">
+            Swal.fire({
+                icon: 'success',
+                title: 'Éxito',
+                text: [[${success}]],
+                confirmButtonColor: '#2563eb',
+                heightAuto: false,
+                scrollbarPadding: false
+            });
+        </script>
+    </div>
+    <div th:if="${error}">
+        <script th:inline="javascript">
+            Swal.fire({
+                icon: 'error',
+                title: 'Error',
+                text: [[${error}]],
+                confirmButtonColor: '#dc2626',
+                heightAuto: false,
+                scrollbarPadding: false
+            });
+        </script>
+    </div>
+
+    <div class="flex flex-col md:flex-row justify-between items-center mt-6 mb-4 gap-4">
+        <div class="w-full md:w-1/2">
+            <form th:action="@{/clientes}" method="get" class="flex">
+                <div class="relative w-full">
+                    <input type="text" name="keyword" th:value="${keyword}"
+                           placeholder="Buscar por nombre, correo o estado"
+                           class="w-full border rounded pl-10 pr-3 py-2 focus:ring-2 focus:ring-blue-500 focus:outline-none"/>
+                    <svg class="absolute left-3 top-2.5 w-5 h-5 text-gray-400" fill="none" stroke="currentColor"
+                         viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                              d="M21 21l-4.35-4.35m0 0A7.5 7.5 0 1110.5 3a7.5 7.5 0 016.15 13.65z"/>
+                    </svg>
+                </div>
+                <button type="submit"
+                        class="ml-2 bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700">
+                    Buscar
+                </button>
+            </form>
+        </div>
+
+        <div class="flex flex-col md:flex-row gap-2 w-full md:w-auto">
+            <form id="formExportarPDF" th:action="@{/clientes/exportar-pdf}" method="post"
+                  class="flex flex-col md:flex-row gap-2 items-center w-full">
+                <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}"/>
+                <div class="flex gap-2 w-full">
+                    <input type="date" id="fechaInicio" name="fechaInicio" required
+                           class="w-1/2 border rounded px-2 py-1"/>
+                    <input type="date" id="fechaFin" name="fechaFin" required
+                           class="w-1/2 border rounded px-2 py-1"/>
+                </div>
+                <button type="submit"
+                        class="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded shadow w-full">
+                    Exportar PDF
+                </button>
+            </form>
+            <button id="btnNuevoCliente" type="button"
+                    class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded shadow w-full">
+                + Nuevo Cliente
+            </button>
+        </div>
+    </div>
+
+    <div class="hidden md:block bg-white rounded-lg shadow overflow-x-auto">
+        <table class="min-w-full text-sm text-left">
+            <thead class="bg-gray-100 text-gray-700 uppercase">
+            <tr>
+                <th class="px-4 py-3">ID</th>
+                <th class="px-4 py-3">Nombre</th>
+                <th class="px-4 py-3">Dirección</th>
+                <th class="px-4 py-3">Teléfono</th>
+                <th class="px-4 py-3">Correo</th>
+                <th class="px-4 py-3">Estado</th>
+                <th class="px-4 py-3 text-center">Acciones</th>
+            </tr>
+            </thead>
+            <tbody class="divide-y divide-gray-200" th:each="cliente : ${clientesPage.content}">
+            <tr class="hover:bg-gray-50 transition">
+                <td class="px-4 py-3" th:text="${cliente.id}">1</td>
+                <td class="px-4 py-3" th:text="${cliente.nombre}">Nombre</td>
+                <td class="px-4 py-3" th:text="${cliente.direccion}">Dirección</td>
+                <td class="px-4 py-3" th:text="${cliente.telefono}">Tel</td>
+                <td class="px-4 py-3" th:text="${cliente.correo}">email@dominio</td>
+                <td class="px-4 py-3">
+                    <span th:text="${cliente.estado}"
+                          class="px-2 py-1 rounded text-xs"
+                          th:classappend="${cliente.estado.name()} == 'ACTIVO' ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'">
+                    </span>
+                </td>
+                <td class="px-4 py-3 text-center space-x-2">
+                    <button type="button"
+                            class="btnEditar bg-yellow-500 hover:bg-yellow-600 text-white px-3 py-1 rounded"
+                            th:attr="data-id=${cliente.id},data-nombre=${cliente.nombre},data-direccion=${cliente.direccion},data-telefono=${cliente.telefono},data-correo=${cliente.correo},data-estado=${cliente.estado}">
+                        Editar
+                    </button>
+
+                    <form th:action="@{/clientes/cambiar-estado/{id}(id=${cliente.id})}" method="post"
+                          class="inline cambiar-estado-form">
+                        <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}"/>
+                        <button type="submit"
+                                class="bg-indigo-500 hover:bg-indigo-600 text-white px-3 py-1 rounded">
+                            Cambiar Estado
+                        </button>
+                    </form>
+
+                    <form th:action="@{/clientes/eliminar/{id}(id=${cliente.id})}" method="post"
+                          class="inline eliminar-form">
+                        <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}"/>
+                        <button type="submit"
+                                class="bg-red-500 hover:bg-red-600 text-white px-3 py-1 rounded">
+                            Eliminar
+                        </button>
+                    </form>
+                </td>
+            </tr>
+            </tbody>
+        </table>
+    </div>
+
+    <div class="md:hidden">
+        <div class="overflow-y-auto max-h-[calc(100vh-180px)] space-y-4 p-2 pb-20">
+            <div th:each="cliente : ${clientesPage.content}"
+                 class="bg-white p-4 rounded-lg shadow flex flex-col gap-2 transition hover:shadow-md hover:scale-[1.01]">
+                <div><span class="font-semibold">ID:</span> <span th:text="${cliente.id}">1</span></div>
+                <div><span class="font-semibold">Nombre:</span> <span th:text="${cliente.nombre}">Nombre</span></div>
+                <div><span class="font-semibold">Dirección:</span> <span th:text="${cliente.direccion}">Dirección</span></div>
+                <div><span class="font-semibold">Teléfono:</span> <span th:text="${cliente.telefono}">Tel</span></div>
+                <div><span class="font-semibold">Correo:</span> <span th:text="${cliente.correo}">email@dominio</span></div>
+                <div>
+                    <span class="font-semibold">Estado:</span>
+                    <span th:text="${cliente.estado}"
+                          class="ml-2 px-2 py-1 rounded text-xs"
+                          th:classappend="${cliente.estado.name()} == 'ACTIVO' ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'"></span>
+                </div>
+                <div class="flex flex-wrap gap-2 pt-2">
+                    <button type="button"
+                            class="btnEditar flex-1 min-w-[48%] bg-yellow-500 hover:bg-yellow-600 text-white px-3 py-1 rounded text-sm"
+                            th:attr="data-id=${cliente.id},data-nombre=${cliente.nombre},data-direccion=${cliente.direccion},data-telefono=${cliente.telefono},data-correo=${cliente.correo},data-estado=${cliente.estado}">
+                        Editar
+                    </button>
+                    <form th:action="@{/clientes/cambiar-estado/{id}(id=${cliente.id})}" method="post"
+                          class="flex-1 min-w-[48%] cambiar-estado-form">
+                        <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}"/>
+                        <button type="submit"
+                                class="w-full bg-indigo-500 hover:bg-indigo-600 text-white px-3 py-1 rounded text-sm">
+                            Estado
+                        </button>
+                    </form>
+                    <form th:action="@{/clientes/eliminar/{id}(id=${cliente.id})}" method="post"
+                          class="flex-1 min-w-[48%] eliminar-form">
+                        <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}"/>
+                        <button type="submit"
+                                class="w-full bg-red-500 hover:bg-red-600 text-white px-3 py-1 rounded text-sm">
+                            Eliminar
+                        </button>
+                    </form>
+                </div>
+            </div>
+        </div>
+
+        <div class="fixed bottom-0 left-0 right-0 bg-white shadow p-2 flex justify-center space-x-2">
+            <a th:each="i : ${#numbers.sequence(0, clientesPage.totalPages - 1)}"
+               th:href="@{/clientes(page=${i}, keyword=${keyword})}"
+               th:text="${i + 1}"
+               th:classappend="${i == currentPage}
+                    ? 'bg-blue-600 text-white px-3 py-1 rounded'
+                    : 'bg-gray-200 px-3 py-1 rounded hover:bg-gray-300'">
+            </a>
+        </div>
+    </div>
+
+    <div class="hidden md:flex mt-4 justify-center space-x-2">
+        <a th:each="i : ${#numbers.sequence(0, clientesPage.totalPages - 1)}"
+           th:href="@{/clientes(page=${i}, keyword=${keyword})}"
+           th:text="${i + 1}"
+           th:classappend="${i == currentPage}
+                ? 'bg-blue-600 text-white px-3 py-1 rounded'
+                : 'bg-gray-200 px-3 py-1 rounded hover:bg-gray-300'">
+        </a>
+    </div>
+
+    <div id="modalRegistro" class="fixed inset-0 z-50 bg-black bg-opacity-50 hidden items-center justify-center">
+        <div class="bg-white w-full max-w-lg rounded-lg p-6">
+            <h2 class="text-xl font-bold mb-4">Registrar Cliente</h2>
+            <form th:action="@{/clientes/registrar}" th:object="${nuevoCliente}" method="post" class="space-y-4">
+                <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}"/>
+                <div>
+                    <label class="block text-sm font-medium">Nombre *</label>
+                    <input th:field="*{nombre}" type="text" maxlength="100" required
+                           class="w-full border rounded px-3 py-2"/>
+                </div>
+                <div>
+                    <label class="block text-sm font-medium">Dirección</label>
+                    <input th:field="*{direccion}" type="text" maxlength="150"
+                           class="w-full border rounded px-3 py-2"/>
+                </div>
+                <div>
+                    <label class="block text-sm font-medium">Teléfono</label>
+                    <input th:field="*{telefono}" type="text" maxlength="15"
+                           class="w-full border rounded px-3 py-2"/>
+                </div>
+                <div>
+                    <label class="block text-sm font-medium">Correo</label>
+                    <input th:field="*{correo}" type="email" maxlength="100"
+                           class="w-full border rounded px-3 py-2"/>
+                </div>
+                <div>
+                    <label class="block text-sm font-medium">Estado *</label>
+                    <select th:field="*{estado}" required class="w-full border rounded px-3 py-2">
+                        <option value="ACTIVO">Activo</option>
+                        <option value="INACTIVO">Inactivo</option>
+                    </select>
+                </div>
+
+                <div class="flex justify-end space-x-2">
+                    <button type="button" id="btnCerrarRegistro" class="bg-gray-400 text-white px-3 py-1 rounded">Cancelar</button>
+                    <button type="submit" class="bg-blue-600 hover:bg-blue-700 text-white px-3 py-1 rounded">Guardar</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <div id="modalEdicion" class="fixed inset-0 z-50 bg-black bg-opacity-50 hidden items-center justify-center">
+        <div class="bg-white w-full max-w-lg rounded-lg p-6">
+            <h2 class="text-xl font-bold mb-4">Editar Cliente</h2>
+
+            <form id="formEditar" th:object="${cliente}" method="post" class="space-y-4">
+                <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}"/>
+                <input type="hidden" name="id" id="editId"/>
+
+                <div>
+                    <label class="block text-sm font-medium">Nombre *</label>
+                    <input name="nombre" id="editNombre" type="text" maxlength="100" required class="w-full border rounded px-3 py-2"/>
+                </div>
+                <div>
+                    <label class="block text-sm font-medium">Dirección</label>
+                    <input name="direccion" id="editDireccion" type="text" maxlength="150" class="w-full border rounded px-3 py-2"/>
+                </div>
+                <div>
+                    <label class="block text-sm font-medium">Teléfono</label>
+                    <input name="telefono" id="editTelefono" type="text" maxlength="15" class="w-full border rounded px-3 py-2"/>
+                </div>
+                <div>
+                    <label class="block text-sm font-medium">Correo</label>
+                    <input name="correo" id="editCorreo" type="email" maxlength="100" class="w-full border rounded px-3 py-2"/>
+                </div>
+                <div>
+                    <label class="block text-sm font-medium">Estado *</label>
+                    <select name="estado" id="editEstado" required class="w-full border rounded px-3 py-2">
+                        <option value="ACTIVO">Activo</option>
+                        <option value="INACTIVO">Inactivo</option>
+                    </select>
+                </div>
+
+                <div class="flex justify-end space-x-2">
+                    <button type="button" id="btnCerrarEdicion" class="bg-gray-400 text-white px-3 py-1 rounded">Cancelar</button>
+                    <button type="submit" class="bg-blue-600 hover:bg-blue-700 text-white px-3 py-1 rounded">Actualizar</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script th:inline="javascript">
+        /*<![CDATA[*/
+        document.addEventListener('DOMContentLoaded', function () {
+            const modalRegistro = document.getElementById('modalRegistro');
+            const modalEdicion = document.getElementById('modalEdicion');
+
+            // Abrir modal registro
+            const btnNuevo = document.getElementById('btnNuevoCliente');
+            if (btnNuevo) {
+                btnNuevo.addEventListener('click', function () {
+                    modalRegistro.classList.remove('hidden');
+                    modalRegistro.classList.add('flex');
+                });
+            }
+
+            // Cerrar modal registro
+            const btnCerrarRegistro = document.getElementById('btnCerrarRegistro');
+            if (btnCerrarRegistro) {
+                btnCerrarRegistro.addEventListener('click', function () {
+                    modalRegistro.classList.add('hidden');
+                    modalRegistro.classList.remove('flex');
+                });
+            }
+
+            // Editar: attach listeners a botones (data-attributes)
+            document.querySelectorAll('.btnEditar').forEach(btn => {
+                btn.addEventListener('click', function () {
+                    const id = btn.getAttribute('data-id');
+                    const nombre = btn.getAttribute('data-nombre') || '';
+                    const direccion = btn.getAttribute('data-direccion') || '';
+                    const telefono = btn.getAttribute('data-telefono') || '';
+                    const correo = btn.getAttribute('data-correo') || '';
+                    const estado = btn.getAttribute('data-estado') || 'ACTIVO';
+
+                    // Rellenar form
+                    document.getElementById('editId').value = id;
+                    document.getElementById('editNombre').value = nombre;
+                    document.getElementById('editDireccion').value = direccion;
+                    document.getElementById('editTelefono').value = telefono;
+                    document.getElementById('editCorreo').value = correo;
+                    document.getElementById('editEstado').value = estado;
+
+                    // ✅ Setear action con slash inicial
+                    formEditar.action = '/clientes/actualizar/' + id;
+
+                    // Abrir modal
+                    modalEdicion.classList.remove('hidden');
+                    modalEdicion.classList.add('flex');
+                });
+            });
+
+            // cerrar edición
+            const btnCerrarEdicion = document.getElementById('btnCerrarEdicion');
+            if (btnCerrarEdicion) {
+                btnCerrarEdicion.addEventListener('click', function () {
+                    modalEdicion.classList.add('hidden');
+                    modalEdicion.classList.remove('flex');
+                });
+            }
+
+            // Confirmación eliminar
+            document.querySelectorAll('.eliminar-form, .eliminar-form').forEach(form => {
+                // selector compatible si usas clase "eliminar-form" o "eliminarForm"
+                form.addEventListener('submit', function (e) {
+                    e.preventDefault();
+                    Swal.fire({
+                        title: '¿Eliminar cliente?',
+                        text: "No podrás deshacer esto",
+                        icon: 'warning',
+                        showCancelButton: true,
+                        confirmButtonText: 'Sí, eliminar',
+                        cancelButtonText: 'Cancelar',
+                        confirmButtonColor: '#dc2626',
+                        cancelButtonColor: '#6b7280',
+                        heightAuto: false,
+                        scrollbarPadding: false
+                    }).then((result) => {
+                        if (result.isConfirmed) {
+                            form.submit();
+                        }
+                    });
+                });
+            });
+
+            // Confirmación cambiar estado
+            document.querySelectorAll('.cambiar-estado-form').forEach(form => {
+                form.addEventListener('submit', function (e) {
+                    e.preventDefault();
+                    Swal.fire({
+                        title: '¿Cambiar estado?',
+                        text: "El estado será actualizado",
+                        icon: 'question',
+                        showCancelButton: true,
+                        confirmButtonText: 'Sí, cambiar',
+                        cancelButtonText: 'Cancelar',
+                        confirmButtonColor: '#9333ea',
+                        cancelButtonColor: '#6b7280',
+                        heightAuto: false,
+                        scrollbarPadding: false
+                    }).then((result) => {
+                        if (result.isConfirmed) {
+                            form.submit();
+                        }
+                    });
+                });
+            });
+
+            const formExportar = document.getElementById('formExportarPDF');
+            if (formExportar) {
+                formExportar.addEventListener('submit', function (e) {
+                    e.preventDefault(); // evitar submit normal
+
+                    const inicio = document.getElementById('fechaInicio').value;
+                    const fin = document.getElementById('fechaFin').value;
+
+                    // Validaciones básicas
+                    if (!inicio || !fin) {
+                        Swal.fire({
+                            icon: 'warning',
+                            title: 'Campos requeridos',
+                            text: 'Debes seleccionar ambas fechas.',
+                            confirmButtonColor: '#2563eb',
+                            heightAuto: false,
+                            scrollbarPadding: false
+                        });
+                        return;
+                    }
+
+                    if (inicio > fin) {
+                        Swal.fire({
+                            icon: 'error',
+                            title: 'Rango inválido',
+                            text: 'La fecha de inicio no puede ser mayor que la fecha fin.',
+                            confirmButtonColor: '#dc2626',
+                            heightAuto: false,
+                            scrollbarPadding: false
+                        });
+                        return;
+                    }
+
+                    // ✅ Enviar con fetch
+                    const formData = new FormData(formExportar);
+
+                    fetch(formExportar.action, {
+                        method: 'POST',
+                        body: formData
+                    }).then(response => {
+                        if (response.status === 404) {
+                            Swal.fire({
+                                icon: 'info',
+                                title: 'Sin resultados',
+                                text: 'No se encontraron datos en el rango de fechas seleccionado.',
+                                confirmButtonColor: '#2563eb',
+                                heightAuto: false,
+                                scrollbarPadding: false
+                            });
+                            return null;
+                        }
+                        if (!response.ok) {
+                            throw new Error("Error en el servidor");
+                        }
+
+                        // 🔹 Obtener nombre de archivo desde Content-Disposition
+                        const disposition = response.headers.get("Content-Disposition");
+                        let fileName = "clientes.pdf"; // fallback
+                        if (disposition && disposition.includes("filename=")) {
+                            fileName = disposition
+                                .split("filename=")[1]
+                                .replace(/["']/g, ""); // limpia comillas
+                        }
+
+                        return response.blob().then(blob => ({ blob, fileName }));
+                    }).then(data => {
+                        if (data) {
+                            const url = window.URL.createObjectURL(data.blob);
+                            const a = document.createElement('a');
+                            a.href = url;
+                            a.download = data.fileName; // ✅ nombre real
+                            document.body.appendChild(a);
+                            a.click();
+                            a.remove();
+                            window.URL.revokeObjectURL(url);
+                        }
+                    }).catch(error => {
+                        Swal.fire({
+                            icon: 'error',
+                            title: 'Error',
+                            text: error.message,
+                            confirmButtonColor: '#dc2626',
+                            heightAuto: false,
+                            scrollbarPadding: false
+                        });
+                    });
+                });
+            }
+            /*fin de pdf*/
+
+        });
+        /*]]>*/
+    </script>
+</div>
+</body>
+</html>
