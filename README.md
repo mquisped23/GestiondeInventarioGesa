@@ -68,8 +68,8 @@ Sigue estos pasos para configurar y ejecutar el proyecto en tu entorno local.
     * Asegúrate de que la configuración de la base de datos coincida con la tuya. La configuración por defecto es:
     ```properties
     spring.datasource.url=jdbc:mysql://localhost:3306/gestion_inventario?useSSL=false&serverTimezone=UTC&allowPublicKeyRetrieval=true
-    spring.datasource.username=miguel
-    spring.datasource.password=miguelelmejor
+    spring.datasource.username=tu usuario
+    spring.datasource.password=tu password
     ```
 
 4.  **Ejecutar la Aplicación**:
