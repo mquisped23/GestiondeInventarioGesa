@@ -7,6 +7,7 @@ import com.edu.repository.VentaRepository;
 import com.edu.service.VentaService;
 import jakarta.transaction.Transactional;
 import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -57,13 +58,19 @@ public class VentaServiceImpl implements VentaService {
         // Asignar el usuario logueado
         venta.setUsuario(usuario);
 
+        // DEBEMOS TRAER EL PRECIO DEL PRODUCTO Y CALCULAR EL TOTAL ANTES DE VALIDAR
+        // Convertimos el Integer a un BigDecimal para poder realizar la multiplicación
+        BigDecimal cantidadBigDecimal = new BigDecimal(venta.getCantidad());
+        // Multiplicamos el precio por la cantidad y asignamos el resultado
+        venta.setTotal(venta.getProducto().getPrecio().multiply(cantidadBigDecimal));
+
         // Si pasa la validación, se descuenta:
         venta.getProducto().setStock(venta.getProducto().getStock() - venta.getCantidad());
 
+        // Esta validación ahora funcionará, ya que total tiene un valor
         if (venta.getTotal() == null || venta.getTotal().compareTo(BigDecimal.ZERO) <= 0) {
             throw new BusinessException("El total de la venta debe ser mayor a 0.");
         }
-
 
         venta.setFechaVenta(LocalDateTime.now());
 
@@ -179,6 +186,7 @@ public class VentaServiceImpl implements VentaService {
         return Optional.ofNullable(ventaRepository.sumarTotalVentas())
                 .orElse(BigDecimal.ZERO);
     }
+
     //Obtenemos las 3 utimas ventas
     @Override
     public List<Venta> obtenerUltimasVentas() {
@@ -187,10 +195,12 @@ public class VentaServiceImpl implements VentaService {
 
     @Override
     public List<Map<String, Object>> obtenerProductosMasVendidos() {
-        // Obtenemos los resultados de la consulta de JPA
-        List<Object[]> resultados = ventaRepository.findTop3ProductosMasVendidos();
+        // Definimos una paginación que solo trae 3 resultados
+        Pageable pageable = PageRequest.of(0, 3);
 
-        // Mapeamos los resultados a una lista de mapas para facilitar el acceso en la vista
+        // Llamamos al repositorio con la paginación
+        List<Object[]> resultados = ventaRepository.findProductosMasVendidos(pageable);
+
         return resultados.stream()
                 .map(result -> {
                     Map<String, Object> ventaMap = new LinkedHashMap<>();

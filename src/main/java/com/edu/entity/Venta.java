@@ -42,15 +42,16 @@ public class Venta {
     @Column(nullable = false)
     private Integer cantidad;
 
-    @NotNull(message = "El total es obligatorio")
-    @DecimalMin(value = "0.01", message = "El total debe ser mayor a 0")
+
+  
     @Digits(integer = 12, fraction = 2, message = "El total debe tener como máximo 2 decimales")
     @Column(nullable = false, precision = 14, scale = 2)
     private BigDecimal total;
 
     @Enumerated(EnumType.STRING)
     @Column(nullable = false, length = 20)
-    private EstadoVenta estado;
+    private EstadoVenta estado ;
+
 
     @Column(name = "fecha_venta", nullable = false, updatable = false)
     private LocalDateTime fechaVenta;

@@ -42,6 +42,7 @@ public interface VentaRepository extends JpaRepository<Venta, Long> {
     //no tomaremos en cuenta las ventaas anuladas
     @Query("SELECT SUM(v.total) FROM Venta v WHERE v.estado <> 'ANULADA'")
     BigDecimal sumarTotalVentas();
+
     //Obtenemos las ultimas 3 ventas
     List<Venta> findTop3ByOrderByFechaVentaDesc();
 
@@ -51,7 +52,7 @@ public interface VentaRepository extends JpaRepository<Venta, Long> {
             "WHERE v.estado <> 'ANULADA' " +
             "GROUP BY v.producto " +
             "ORDER BY total_vendido DESC")
-    List<Object[]> findTop3ProductosMasVendidos();
+    List<Object[]> findProductosMasVendidos(Pageable pageable); //
 
     // Nueva consulta para obtener las ventas diarias del mes actual
     @Query("SELECT FUNCTION('DATE', v.fechaVenta) as fecha, SUM(v.total) as totalDiario " +
